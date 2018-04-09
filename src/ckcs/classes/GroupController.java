@@ -189,7 +189,7 @@ public class GroupController {
         }
     }
     
-    private void sendMessage(byte[] message) {
+    private synchronized void sendMessage(byte[] message) {
         try {
             byte[] encryptedMessage = Security.AESEncrypt(tree.getGroupKey(), message);
             List<MultiUnicast> tasks = new ArrayList<>();
