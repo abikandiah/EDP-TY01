@@ -5,36 +5,23 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 
-/**
- *
- * @author abika
- */
 public class MainClass {
     static ArrayList<GroupMember> members = new ArrayList<>();
     static InetAddress address;
     static GroupController keyServer;
     
-    public static void main(String[] args) throws UnknownHostException, InterruptedException {
-        keyServer = new GroupController(InetAddress.getByName("239.255.255.250"));
+    public static void main(String[] args) throws UnknownHostException, InterruptedException {        
+        keyServer = new GroupController(15000);
         address = InetAddress.getLocalHost();
-        
-        Thread th = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                keyServer.startListening(15000);
-                keyServer.setMulticastPort(10001);
-            }
-        });
-        th.start();
         System.out.println(keyServer.toString());
         
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 64; i++) {
             addMember(10000 + i, 15000);
         }
         
-        members.get(1).sendMessage("TEST");
-        removeMember(1);
-        members.get(2).sendMessage("WOOOOOOOORKS");
+        for (int i = 0; i < 64; i++) {
+            removeMember(i - i);
+        }
     }
     
     private static void printMembers() throws InterruptedException {

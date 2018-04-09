@@ -6,7 +6,7 @@ package ckcs.interfaces;
 //member can decrypt with CA's public key, if the received keyServer ID
 //matches the signed ID -- TRUST
 //requires every member have access to CA's public key -- EXTRA
-public interface RequestCodes {
+public interface RequestCode {
     final static int REQUEST_JOIN = 1;
     //---------- REQUEST PROTOCOL ---------
     //member sends REQUEST_JOIN 
@@ -40,9 +40,6 @@ public interface RequestCodes {
     
     final static int SEND_MESSAGE = 16;
     final static int RECEIVE_MESSAGE = 32;
-    final static int LISTEN_PORT = 64;
-    final static int UPDATE_PARENT = 128;
-    final static int ERROR = 512;
+    final static int FORCE_REMOVE = 64;
     
-    final static int BUFFER_SIZE = 512;
 }
