@@ -1,12 +1,5 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package ckcs.classes;
 
-
-import static java.lang.Thread.sleep;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -21,26 +14,18 @@ public class GroupServerInterface extends javax.swing.JFrame   {
     static ArrayList<GroupMember> members = new ArrayList<>();
     static InetAddress address;
     static GroupController keyServer;
+    private static final long serialVersionUID = 1L;
     
         
     
     /**
      * Creates new form GroupServerInterface
+     * @throws java.net.UnknownHostException
+     * @throws java.lang.InterruptedException
      */
     public GroupServerInterface()throws UnknownHostException, InterruptedException {
         initComponents();
                 
-        keyServer = new GroupController(InetAddress.getByName("239.255.255.250"));
-        address = InetAddress.getLocalHost();
-        Thread th = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                keyServer.startListening(15000);
-                keyServer.setMulticastPort(10001);
-            }
-        });
-        th.start();
-      
     }
 
     /**
@@ -62,6 +47,7 @@ public class GroupServerInterface extends javax.swing.JFrame   {
 
         start.setText("Start Server");
         start.addActionListener(new java.awt.event.ActionListener() {
+            @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 startActionPerformed(evt);
             }
@@ -69,6 +55,7 @@ public class GroupServerInterface extends javax.swing.JFrame   {
 
         refreshB.setText("Refresh Log");
         refreshB.addActionListener(new java.awt.event.ActionListener() {
+            @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 refreshBActionPerformed(evt);
             }
@@ -154,25 +141,20 @@ public class GroupServerInterface extends javax.swing.JFrame   {
                     break;
                 }
             }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(GroupServerInterface.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(GroupServerInterface.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(GroupServerInterface.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(GroupServerInterface.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
+        //</editor-fold>
+        
         //</editor-fold>
 
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
+            @Override
             public void run() {
                 try {
                     new GroupServerInterface().setVisible(true);
-                } catch (UnknownHostException ex) {
-                    Logger.getLogger(GroupServerInterface.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (InterruptedException ex) {
+                } catch (UnknownHostException | InterruptedException ex) {
                     Logger.getLogger(GroupServerInterface.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
