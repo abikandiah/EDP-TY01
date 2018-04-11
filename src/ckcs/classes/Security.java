@@ -145,7 +145,7 @@ public class Security {
             keyAgree.doPhase(otherPubKey, true);
             byte[] sharedKeyBytes = keyAgree.generateSecret();
             
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            MessageDigest md = MessageDigest.getInstance("MD5");
             List<ByteBuffer> pubKeyBytes = Arrays.asList(ByteBuffer.wrap(ourPubKeyBytes), ByteBuffer.wrap(otherPubKeyBytes));
             Collections.sort(pubKeyBytes);
             md.update(sharedKeyBytes);
