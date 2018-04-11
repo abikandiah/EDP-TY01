@@ -27,8 +27,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.crypto.SecretKey;
-import javax.xml.bind.DatatypeConverter;
 import ckcs.interfaces.RequestCode;
+import ckcs.interfaces.ServerUI;
+import javax.xml.bind.DatatypeConverter;
 
 //should manage a multicast group, tell every member who join the 'ip-address of multicast'
 public class GroupController {
@@ -39,11 +40,16 @@ public class GroupController {
     final private Map<UUID, Member> groupMembers;
     final private UUID serverID;
     final private ExecutorService executor;
-    final SignedObject signedKey;
-    final PrivateKey privKey;
+    final private SignedObject signedKey;
+    final private PrivateKey privKey;
+    final private InterfaceData uiData;
+    
+    private ServerUI ui;
+    private boolean hasInterface;
         
     public GroupController(int port) {
         KeyPair keyPair = Security.generateKeyPair();
+        this.uiData = new InterfaceData();
         this.privKey = keyPair.getPrivate();
         this.signedKey = Security.obtainTrustedSigned(keyPair.getPublic());
         this.tree = new LogicalTree(3);
@@ -54,10 +60,16 @@ public class GroupController {
         startListening(port);
     }
     
+    public GroupController(int port, ServerUI ui) {
+        this(port);
+        this.ui = ui;
+        this.hasInterface = true;
+    }
+    
     //To give ability to FORCE remove members -- Tells the member that they have been removed
     //Then proceeds with the regular remove procedure
     //UUID is difficult to maintain and input --- NEED A SHORTER ID/KEY
-    public void forceRemove(UUID memId) {
+    public void forceLeave(UUID memId) {
         Member mem = groupMembers.get(memId);
         try (Socket socket = new Socket(mem.address, mem.port);
                 DataOutputStream out = new DataOutputStream(socket.getOutputStream())) {
@@ -74,6 +86,10 @@ public class GroupController {
     private void startListening(final int port) {    
         ExecutorService ex = new ThreadPoolExecutor(2, 4, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(6));
         ex.execute(new Server(ex, port));
+        uiData.state = "Group Controller started. Now listening for incoming connections.";
+        uiData.groupKey = tree.getGroupKey().getEncoded();
+        uiData.memCount = 0;
+        uiData.update();
     }
     
     //multicast to group members that key must be updated via hash for JOIN
@@ -87,6 +103,10 @@ public class GroupController {
             executor.invokeAll(tasks);
             updateKeyOnJoin();
             groupMembers.put(memberID, new Member(port, address));
+            uiData.groupKey = tree.getGroupKey().getEncoded();
+            uiData.state = "A new member has been added! member ID is: " + memberID;
+            uiData.memCount++;
+            uiData.update();
         } catch (InterruptedException ex) {
             Logger.getLogger(GroupController.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -104,6 +124,10 @@ public class GroupController {
                 tasks.add(new MultiUnicast(encryptedGK, member, RequestCode.KEY_UPDATE_LEAVE));
             }
             executor.invokeAll(tasks);
+            uiData.groupKey = tree.getGroupKey().getEncoded();
+            uiData.state = "A member has been removed. member ID is: " + memberID;
+            uiData.memCount--;
+            uiData.update();
         } catch (Exceptions.NoMemberException | InterruptedException ex) {
             Logger.getLogger(GroupController.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -116,7 +140,8 @@ public class GroupController {
             SignedObject signed = (SignedObject)in.readObject();
             boolean isVerified = Security.verifyTrustedSigned(signed);
             if (!isVerified) {
-                System.out.println("Member cannot be trusted! Refuse connection!");
+                uiData.state = "Member cannot be trusted! Refuse connection!";
+                uiData.update();
                 in.close(); out.close();
                 return;
             }
@@ -131,7 +156,8 @@ public class GroupController {
             String parts[] = message.split("::");
             int N1Received = Integer.parseInt(parts[0]);
             if (N1 != N1Received) {
-                System.out.println("Connection Failed -- Back Out");
+                uiData.state = "Connection Failed -- Back Out";
+                uiData.update();
                 return;
             }
             UUID memID = UUID.fromString(parts[1]);
@@ -146,20 +172,11 @@ public class GroupController {
             
             addMember(memID, memberPort, memberAddress, sharedKey);
             String parentCode = tree.getParentCode(memID);
-            message = parentCode;
-            encryptedMessage = Security.AESEncrypt(sharedKey, message.getBytes(StandardCharsets.UTF_8));
+            encryptedMessage = Security.AESEncrypt(sharedKey, parentCode.getBytes(StandardCharsets.UTF_8));
             writeOutBuffer(out, encryptedMessage);
-            
-            byte[] received = readIntoByte(in);
-            message = new String(Security.AESDecrypt(sharedKey, received), StandardCharsets.UTF_8);
-            if (!parentCode.equals(message)) {
-                System.out.println("Connection Failed -- Back Out");
-                return;
-            }
-            
+                       
             encryptedMessage = Security.AESEncrypt(sharedKey, tree.getGroupKey().getEncoded());
             writeOutBuffer(out, encryptedMessage);
-            System.out.println("Connection Successful! Member added");
             //END OF JOIN/KEY EXCHANGE PHASE
         } catch (IOException | ClassNotFoundException ex) {
             Logger.getLogger(GroupController.class.getName()).log(Level.SEVERE, null, ex);
@@ -197,16 +214,11 @@ public class GroupController {
                 tasks.add(new MultiUnicast(encryptedMessage, member, RequestCode.RECEIVE_MESSAGE));
             }
             executor.invokeAll(tasks);
+            uiData.state = "Message: \"" + new String(message, StandardCharsets.UTF_8) + "\" sent to group.";
+            uiData.update();
         } catch (InterruptedException ex) {
             Logger.getLogger(GroupController.class.getName()).log(Level.SEVERE, null, ex);
         }
-    }
-    
-    private byte[]readIntoByte(ObjectInputStream in) throws IOException {
-        int length = in.readInt();
-        byte[] buffer = new byte[length];
-        in.readFully(buffer);
-        return buffer;
     }
     
     private void writeOutBuffer(ObjectOutputStream out, byte[] buffer) throws IOException {
@@ -224,7 +236,7 @@ public class GroupController {
     //new GK is hash of old GK
     private void updateKeyOnJoin() {
         tree.setGroupKey(Security.updateKey(tree.getGroupKey()));
-    } 
+    }
     
     @Override
     public String toString() {
@@ -328,6 +340,30 @@ public class GroupController {
                 }
             } catch (IOException ex) {
                 Logger.getLogger(GroupController.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+    
+    public class InterfaceData {
+        private String state;
+        private int memCount;
+        private byte[] groupKey;
+        
+        public String getState() {
+            return state;
+        }
+        
+        public byte[] getGK (){
+            return groupKey;
+        }
+        
+        public int getCount() {
+            return memCount;
+        }
+        
+        private void update() {
+            if (hasInterface) {
+                ui.updateState(this);
             }
         }
     }

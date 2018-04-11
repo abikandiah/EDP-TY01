@@ -1,7 +1,6 @@
 package ckcs.classes;
 
 import ckcs.classes.Exceptions.NoMemberException;
-import ckcs.interfaces.Node;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -22,7 +21,7 @@ public class LogicalTree {
     
     private TreeMap<Integer, Map<String, MiddleNode>> middleNodes; //red-black based; ordered mapping via keys (node codes)
     private TreeMap<Integer, List<String>> codeValuesTaken; //nodeCode values that have been taken (so to not repeat nodeCode values in siblings)
-    private HashMap<UUID, LeafNode> leafNodes; //UUID = groupMember ID
+    private Map<UUID, LeafNode> leafNodes; //UUID = groupMember ID
     private MiddleNode rootNode;
     private int numberOfCodeDigits; // for rootNode; e.g. 20143 = 5
     
@@ -357,7 +356,7 @@ public class LogicalTree {
     
     //middlenode, just need to hold key and nodeCode
     //The nodes in between the root and each leafNode
-    private class MiddleNode implements Node {
+    private class MiddleNode {
         private String parentCode;
         private String nodeCode;
         private List<UUID> children;
@@ -384,7 +383,7 @@ public class LogicalTree {
     
     //leafNode, aka group members. Only need info that KeyServer needs
     //no need to have instance of every member (keep everything to a minimum)
-    private class LeafNode implements Node {
+    private class LeafNode {
         private final SecretKey key;
         private String parentCode;
         

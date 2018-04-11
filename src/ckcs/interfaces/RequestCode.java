@@ -1,11 +1,5 @@
 package ckcs.interfaces;
 
-//maybe include certification to prevent man in the middle?
-//have the keyServer send they're certificate to prove themselves,
-//signed by a trusty CA -- keyServer's ID is signed, 
-//member can decrypt with CA's public key, if the received keyServer ID
-//matches the signed ID -- TRUST
-//requires every member have access to CA's public key -- EXTRA
 public interface RequestCode {
     final static int REQUEST_JOIN = 1;
     //---------- REQUEST PROTOCOL ---------

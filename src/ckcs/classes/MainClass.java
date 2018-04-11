@@ -40,7 +40,6 @@ public class MainClass {
     
     private static void removeMember(int index) throws InterruptedException {
         GroupMember member = members.get(index);
-        System.out.println("Removing member: " + member.getId().toString());
         member.requestLeave();
         members.remove(index);
         printMembers();

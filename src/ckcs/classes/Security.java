@@ -110,7 +110,7 @@ public class Security {
     public static byte[] hashFunction(final byte[] input) {
         //returns a 256-bit hash using SHA-256 algo
         try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            MessageDigest md = MessageDigest.getInstance("MD5");
             return md.digest(input);
         } catch (NoSuchAlgorithmException ex) {
             Logger.getLogger(Security.class.getName()).log(Level.SEVERE, null, ex);
@@ -125,7 +125,7 @@ public class Security {
             //include some sort of authentication between users, such as ID, Nonces, Certificates? -- prevent man-in-the-middle/replays
         try {
             KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance("EC");
-            keyPairGen.initialize(256);
+            keyPairGen.initialize(128);
             KeyPair keyPair = keyPairGen.genKeyPair();
             byte[] ourPubKeyBytes = keyPair.getPublic().getEncoded();
             byte[] buffer = RSAEncrypt(otherPub, ourPubKeyBytes);
@@ -185,7 +185,7 @@ public class Security {
     public static SecretKey generateRandomKey() {
         try {
             KeyGenerator keyGen = KeyGenerator.getInstance("AES");
-            keyGen.init(256);
+            keyGen.init(128);
             return keyGen.generateKey();
         } catch (NoSuchAlgorithmException ex) {
             Logger.getLogger(Security.class.getName()).log(Level.SEVERE, null, ex);
@@ -204,8 +204,8 @@ public class Security {
         
     }
 
-    public static SecretKey middleKeyCalculation(final SecretKey key, final String nodeNumber) {
-        byte[] keyBytes = key.getEncoded();
+    public static SecretKey middleKeyCalculation(final SecretKey groupKey, final String nodeNumber) {
+        byte[] keyBytes = groupKey.getEncoded();
         byte[] number = nodeNumber.getBytes(StandardCharsets.UTF_8);
         for(int i = 0, j = 0; i < keyBytes.length; i++, j++) {
             if (j == number.length - 1) {

@@ -1,5 +1,6 @@
 package ckcs.classes;
 
+import ckcs.interfaces.MemberUI;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -24,23 +25,27 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import javax.xml.bind.DatatypeConverter;
 import ckcs.interfaces.RequestCode;
 import java.nio.ByteBuffer;
+import javax.xml.bind.DatatypeConverter;
 
 public class GroupMember {
     
     final private UUID memberID; //randomly assigned
     final private SignedObject signedKey;
     final private PrivateKey privKey;
+    final private InterfaceData uiData;
     
     private int port; //member's unqiue port to communicate with server
     private boolean isConnected; 
+    private boolean hasInterface;
+    private MemberUI ui;
     private Socket servSocket;
     private ServerData servData;
         
     public GroupMember(UUID Id, int port) {
         KeyPair keyPair = Security.generateKeyPair();
+        this.uiData = new InterfaceData();
         this.memberID = Id;
         this.port = port;
         this.privKey = keyPair.getPrivate();
@@ -48,20 +53,14 @@ public class GroupMember {
         this.servData = new ServerData();
     }
     
+    public GroupMember(final int port, MemberUI ui) {
+        this(port);
+        this.ui = ui;
+        this.hasInterface = true;
+    }
+    
     public GroupMember(final int port) {
         this(UUID.randomUUID(), port);              
-    }
-    
-    public void setParentCode(String parentCode) {
-        this.servData.parentCode = parentCode;
-    }
-    
-    public void setRootCode(String rootCode) {
-        this.servData.rootCode = rootCode;
-    }
-    
-    public void setKey(SecretKey key) {
-        this.servData.key = key;
     }
     
     public UUID getId() {
@@ -80,7 +79,8 @@ public class GroupMember {
             SignedObject signed = (SignedObject)in.readObject();
             boolean isVerified = Security.verifyTrustedSigned(signed);
             if (!isVerified) {
-                System.out.println("Group Controller cannot be trusted! Abort connection!");
+                uiData.state = "Group Controller cannot be trusted! Abort connection!";
+                uiData.update();
                 socket.close();
                 return;
             }
@@ -106,22 +106,24 @@ public class GroupMember {
             UUID memID = UUID.fromString(parts[2]);
             this.servData.rootCode = parts[3];
             if (N2Received != N2 || !memID.equals(memberID)) {
-                System.out.println("Connection Failed -- Back Out");
+                uiData.state = "Connection Failed -- Back Out";
+                uiData.update();
                 return;
             }
                 
             received = readIntoBuffer(in);
             message = new String(Security.AESDecrypt(servData.key, received), StandardCharsets.UTF_8);
             this.servData.parentCode = message;
-               
-            byte[] encryptedMessage = Security.AESEncrypt(servData.key, servData.parentCode.getBytes(StandardCharsets.UTF_8));
-            writeOutBuffer(out, encryptedMessage);
+            uiData.parentCode = message;
                 
             received = readIntoBuffer(in);
-            servData.groupKey = new SecretKeySpec(Security.AESDecrypt(servData.key, received), "AES");
+            byte[] GK = Security.AESDecrypt(servData.key, received);
+            uiData.groupKey = GK;
+            servData.groupKey = new SecretKeySpec(GK, "AES");
             isConnected = true;
             listenToKeyServer();
-            System.out.println("Connection Successful! Added to group");
+            uiData.state = "Connection Successful! Added to group";
+            uiData.update();
             //END OF JOIN/KEY EXCHANGE PHASE
         } catch (IOException | ClassNotFoundException ex) {
             Logger.getLogger(GroupMember.class.getName()).log(Level.SEVERE, null, ex);
@@ -169,6 +171,8 @@ public class GroupMember {
         } catch (IOException ex) {
             Logger.getLogger(GroupMember.class.getName()).log(Level.SEVERE, null, ex);
         }
+        uiData.state = "Message sent to group.";
+        uiData.update();
     }
     
     private void listenToKeyServer() {
@@ -178,6 +182,9 @@ public class GroupMember {
     
     private void handleJoinUpdate() {
         servData.groupKey = Security.updateKey(servData.groupKey);
+        uiData.groupKey = servData.groupKey.getEncoded();
+        uiData.state = "A member has joined the group. Group Key has been updated via one-way hash.";
+        uiData.update();
     }
    
     //receive a byte[] containing the new encrypted GK
@@ -205,12 +212,17 @@ public class GroupMember {
             encrypted = Security.AESDecrypt(middleKey, encrypGK);    
         }
         servData.groupKey = new SecretKeySpec(encrypted, "AES");
+        uiData.groupKey = encrypted;
+        uiData.parentCode = parent;
+        uiData.state = "A member has left the group. Group Key and ParentCode have been updated via Middle Node Key.";
+        uiData.update();
     }
     
     private void readMessage(byte[] received) {
         byte[] decrypted = Security.AESDecrypt(servData.groupKey, received);
-        String message = new String(decrypted, StandardCharsets.UTF_8);
-        System.out.println(message);
+        uiData.message = new String(decrypted, StandardCharsets.UTF_8);
+        uiData.state = "Message received";
+        uiData.update();
     }
     
     private String removeDigit(String parentCode) {
@@ -230,6 +242,10 @@ public class GroupMember {
         isConnected = false;
         servSocket.close();
         servData = null;
+        uiData.groupKey = "".getBytes();
+        uiData.parentCode = "";
+        uiData.state = "Removed from the group. You are now disconnected.";
+        uiData.update();
     }
     
     private byte[] readIntoBuffer(ObjectInputStream in) throws IOException {
@@ -237,13 +253,6 @@ public class GroupMember {
         byte[] buffer = new byte[length];
         in.readFully(buffer);
         return buffer;
-    }
-    
-    private void writeOutBuffer(ObjectOutputStream out, byte[] buffer) throws IOException {
-        int length = buffer.length;
-        out.writeInt(length);
-        out.write(buffer);
-        out.flush();
     }
     
     @Override
@@ -284,6 +293,35 @@ public class GroupMember {
             } catch (IOException ex) {
                 Logger.getLogger(fromServer.class.getName()).log(Level.SEVERE, null, ex);
             }
+        }
+    }
+    
+    public class InterfaceData {
+        private String message;
+        private String parentCode;
+        private String state;
+        private byte[] groupKey;
+        
+        private void update() {
+            if (hasInterface) {
+                ui.updateState(this);
+            }
+        }
+        
+        public String getMessage() {
+            return message;
+        }
+        
+        public String getParentCode() {
+            return parentCode;
+        }
+        
+        public String getState() {
+            return state;
+        }
+        
+        public byte[] getGK() {
+            return groupKey;
         }
     }
     
