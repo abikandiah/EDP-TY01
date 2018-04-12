@@ -1,5 +1,10 @@
 package ckcs.classes;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -19,6 +24,7 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.security.SignedObject;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Collections;
@@ -44,17 +50,47 @@ public class Security {
     //Then they will both enter the ECDHKeyAgreement and obtain Session Keys
     private volatile static PrivateKey TrustedPrivate;
     private volatile static PublicKey TrustedPublic;
+    private static final String DIRECTORY = "C:\\Users\\abika\\Documents\\University\\Fourth Year\\2nd Semester\\Design Project\\EDP - CKCS\\";
         
     private static void generateTrustedKeyPair() {
         KeyPair keyPair = generateKeyPair();
         TrustedPrivate = keyPair.getPrivate();
         TrustedPublic = keyPair.getPublic();   
+        
+        try (DataOutputStream out = new DataOutputStream(new FileOutputStream(DIRECTORY + "keys"))) {
+            byte[] pr = TrustedPrivate.getEncoded();
+            byte[] pb = TrustedPublic.getEncoded();
+            out.writeInt(pr.length);
+            out.write(pr);
+            out.writeInt(pb.length);
+            out.write(pb);
+        } catch (IOException ex) {
+            Logger.getLogger(Security.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    private static void readTrustedKeyPair() {
+        try (DataInputStream in = new DataInputStream(new FileInputStream(DIRECTORY + "keys"))) {
+            int prLen = in.readInt();
+            byte[] pr = new byte[prLen];
+            in.readFully(pr);
+            int pbLen = in.readInt();
+            byte[] pb = new byte[pbLen];
+            in.readFully(pb);
+            TrustedPrivate = KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(pr));
+            TrustedPublic = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(pb));
+        } catch (FileNotFoundException ex) {
+            generateTrustedKeyPair();
+            Logger.getLogger(Security.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException ex) {
+            Logger.getLogger(Security.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     public synchronized static SignedObject obtainTrustedSigned(Serializable object) {
         try {
             if (TrustedPrivate == null) {
-                generateTrustedKeyPair();
+                readTrustedKeyPair();
             }
             Signature signature = Signature.getInstance("SHA1withRSA");
             return new SignedObject(object, TrustedPrivate, signature);            
