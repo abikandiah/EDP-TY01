@@ -47,7 +47,7 @@ public class GroupController {
     private ServerUI ui;
     private boolean hasInterface;
         
-    public GroupController(int port) {
+    public GroupController() {
         KeyPair keyPair = Security.generateKeyPair();
         this.uiData = new InterfaceData();
         this.privKey = keyPair.getPrivate();
@@ -57,13 +57,18 @@ public class GroupController {
         this.executor = new ThreadPoolExecutor(5, 5, 60, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
         this.serverID = UUID.randomUUID();
         tree.setGroupKey(Security.generateRandomKey());
+    }
+    
+    public GroupController(int port) {
+        this();
         startListening(port);
     }
     
     public GroupController(int port, ServerUI ui) {
-        this(port);
+        this();
         this.ui = ui;
         this.hasInterface = true;
+        startListening(port);
     }
     
     //To give ability to FORCE remove members -- Tells the member that they have been removed
