@@ -45,7 +45,6 @@ public class GroupController {
     final private InterfaceData uiData;
     
     private ServerUI ui;
-    private boolean hasInterface;
         
     public GroupController() {
         KeyPair keyPair = Security.generateKeyPair();
@@ -67,7 +66,6 @@ public class GroupController {
     public GroupController(int port, ServerUI ui) {
         this();
         this.ui = ui;
-        this.hasInterface = true;
         startListening(port);
     }
     
@@ -367,7 +365,7 @@ public class GroupController {
         }
         
         private void update() {
-            if (hasInterface) {
+            if (ui != null) {
                 ui.updateState(this);
             }
         }

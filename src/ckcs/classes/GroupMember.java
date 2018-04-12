@@ -38,7 +38,6 @@ public class GroupMember {
     
     private int port; //member's unqiue port to communicate with server
     private boolean isConnected; 
-    private boolean hasInterface;
     private MemberUI ui;
     private Socket servSocket;
     private ServerData servData;
@@ -56,7 +55,6 @@ public class GroupMember {
     public GroupMember(final int port, MemberUI ui) {
         this(port);
         this.ui = ui;
-        this.hasInterface = true;
     }
     
     public GroupMember(final int port) {
@@ -303,7 +301,7 @@ public class GroupMember {
         private byte[] groupKey;
         
         private void update() {
-            if (hasInterface) {
+            if (ui != null) {
                 ui.updateState(this);
             }
         }
