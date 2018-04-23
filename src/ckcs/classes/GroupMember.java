@@ -39,7 +39,7 @@ public class GroupMember {
     private int port; //member's unqiue port to communicate with server
     private boolean isConnected; 
     private MemberUI ui;
-    private Socket servSocket;
+    private ServerSocket servSocket;
     private ServerData servData;
         
     public GroupMember(UUID Id, int port) {
@@ -262,12 +262,13 @@ public class GroupMember {
     private class fromServer implements Runnable {
         @Override 
         public void run() {
-            try (ServerSocket fromServer = new ServerSocket()) {
-                fromServer.setReuseAddress(true);
-                fromServer.bind(new InetSocketAddress(port));
+            try {
+                servSocket = new ServerSocket();
+                servSocket.setReuseAddress(true);
+                servSocket.bind(new InetSocketAddress(port));
                 while (isConnected) {
-                    servSocket = fromServer.accept();
-                    DataInputStream in = new DataInputStream(servSocket.getInputStream());
+                    Socket socket = servSocket.accept();
+                    DataInputStream in = new DataInputStream(socket.getInputStream());
                     int code = in.readInt();
                     switch (code) {
                         case RequestCode.KEY_UPDATE_JOIN:
@@ -289,7 +290,9 @@ public class GroupMember {
                     }   
                 }
             } catch (IOException ex) {
-                Logger.getLogger(fromServer.class.getName()).log(Level.SEVERE, null, ex);
+                if (isConnected) {
+                    Logger.getLogger(fromServer.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
         }
     }

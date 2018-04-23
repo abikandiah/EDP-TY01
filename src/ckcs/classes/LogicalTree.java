@@ -170,7 +170,6 @@ public class LogicalTree {
         parent.numberOfChildren--;
         MiddleNode parentsParent = null;
         if (parent.parentCode != null) {
-            System.out.println(parent.parentCode.length());
             parentsParent = getMiddle(parent.parentCode);
         }
         if (parentsParent != null && parentsParent.numberOfChildren == 1) { // move middleSibling's CHILDREN to parentsParent
