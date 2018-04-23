@@ -11,6 +11,7 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyFactory;
@@ -50,7 +51,7 @@ public class Security {
     //Then they will both enter the ECDHKeyAgreement and obtain Session Keys
     private volatile static PrivateKey TrustedPrivate;
     private volatile static PublicKey TrustedPublic;
-    private static final String DIRECTORY = "C:\\Users\\abika\\Documents\\University\\Fourth Year\\2nd Semester\\Design Project\\EDP - CKCS\\";
+    private static final String DIRECTORY = Paths.get("").toAbsolutePath().normalize().toString() + "\\";
         
     private static void generateTrustedKeyPair() {
         KeyPair keyPair = generateKeyPair();

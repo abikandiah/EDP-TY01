@@ -16,7 +16,7 @@ public class MainClass {
         System.out.println(keyServer.toString());
         
         for (int i = 0; i < 64; i++) {
-            addMember(10000 + i, 15000);
+            addMember(10100 + i, 15000);
         }
         
         for (int i = 0; i < 64; i++) {
@@ -32,17 +32,24 @@ public class MainClass {
     
     private static void addMember(int port, int servPort) throws InterruptedException {
         GroupMember member = new GroupMember(port);
+        long start = System.nanoTime();
         member.requestJoin(address, servPort);
         members.add(member);
-        printMembers();
+        long end = System.nanoTime();
+        //printMembers();
         System.out.println(keyServer.toString());
+        System.out.println((end - start)/1000 + " microseconds");
     }
     
     private static void removeMember(int index) throws InterruptedException {
         GroupMember member = members.get(index);
+        long start = System.nanoTime();
         member.requestLeave();
         members.remove(index);
-        printMembers();
+        long end = System.nanoTime();
+        //printMembers();
         System.out.println(keyServer.toString());
+        System.out.println((end - start)/1000 + " microseconds");
+        
     }
 }
