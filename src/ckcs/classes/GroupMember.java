@@ -2,7 +2,6 @@ package ckcs.classes;
 
 import ckcs.interfaces.MemberUI;
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -217,6 +216,7 @@ public class GroupMember {
     }
     
     private void readMessage(byte[] received) {
+        uiData.encryptedMessage = received;
         byte[] decrypted = Security.AESDecrypt(servData.groupKey, received);
         uiData.message = new String(decrypted, StandardCharsets.UTF_8);
         System.out.println(uiData.message);
@@ -300,6 +300,7 @@ public class GroupMember {
     
     public class InterfaceData {
         private String message;
+        private byte[] encryptedMessage;
         private String parentCode;
         private String state;
         private byte[] groupKey;
@@ -312,6 +313,10 @@ public class GroupMember {
         
         public String getMessage() {
             return message;
+        }
+        
+        public byte[] getEncryptedMessage() {
+            return encryptedMessage;
         }
         
         public String getParentCode() {
