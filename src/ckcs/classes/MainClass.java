@@ -14,14 +14,20 @@ public class MainClass {
         keyServer = new GroupController(15000);
         address = InetAddress.getLocalHost();
         System.out.println(keyServer.toString());
+       
+        GroupMember m1 = new GroupMember(10000);
+        GroupMember m2 = new GroupMember(10002);
+        m1.requestJoin(address, 15000);
+        m2.requestJoin(address, 15000);
+        m1.sendMessage("HELLO");
         
-        for (int i = 0; i < 64; i++) {
+        /*for (int i = 0; i < 64; i++) {
             addMember(10100 + i, 15000);
         }
         
         for (int i = 0; i < 64; i++) {
             removeMember(i - i);
-        }
+        }*/
     }
     
     private static void printMembers() throws InterruptedException {

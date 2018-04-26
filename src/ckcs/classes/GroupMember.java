@@ -160,7 +160,7 @@ public class GroupMember {
         byte[] msg = message.getBytes(StandardCharsets.UTF_8);
         byte[] encrypted = Security.AESEncrypt(servData.key, msg);
         try (Socket socket = new Socket(servData.serverAddress, servData.serverPort); 
-                DataOutputStream out = new DataOutputStream(socket.getOutputStream())) {
+                ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())) {
             int length = encrypted.length;
             out.writeInt(RequestCode.SEND_MESSAGE);
             out.writeUTF(memberID.toString());
@@ -219,6 +219,7 @@ public class GroupMember {
     private void readMessage(byte[] received) {
         byte[] decrypted = Security.AESDecrypt(servData.groupKey, received);
         uiData.message = new String(decrypted, StandardCharsets.UTF_8);
+        System.out.println(uiData.message);
         uiData.state = "Message received";
         uiData.update();
     }
